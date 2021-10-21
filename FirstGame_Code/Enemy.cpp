@@ -293,12 +293,13 @@ void AEnemy::Attack()
 				AnimInstance->Montage_Play(CombatMontage, 1.35f);
 				AnimInstance->Montage_JumpToSection(FName("Attack"), CombatMontage);
 			}
-			/*
+			
 			if (SwingSound)
 			{
 				UGameplayStatics::PlaySound2D(this, SwingSound);
 			}
-			*/
+			
+			
 		}
 	}
 
@@ -321,7 +322,8 @@ float AEnemy::TakeDamage(float DamageAmount, struct FDamageEvent const & DamageE
 	if (Health - DamageAmount <= 0.f)
 	{
 		Health -= DamageAmount;
-		Die(DamageCauser);
+		Die();
+		//Die(DamageCauser);
 	}
 	else
 	{
@@ -330,6 +332,23 @@ float AEnemy::TakeDamage(float DamageAmount, struct FDamageEvent const & DamageE
 	return DamageAmount;
 }
 
+void AEnemy::Die()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance)
+	{
+		AnimInstance->Montage_Play(CombatMontage, 1.35f);
+		AnimInstance->Montage_JumpToSection(FName("Death"), CombatMontage);
+	}
+	SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Dead);
+
+	CombatCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	AgroSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	CombatSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
+/*
 void AEnemy::Die(AActor* Causer)
 {
 	SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Dead);
@@ -352,6 +371,7 @@ void AEnemy::Die(AActor* Causer)
 		Main->UpdateCombatTarget();
 	}
 }
+*/
 
 void AEnemy::DeathEnd()
 {

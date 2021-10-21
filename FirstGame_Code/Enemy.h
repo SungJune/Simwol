@@ -141,9 +141,11 @@ public:
 	void AttackEnd();
 
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const & DamageEvent,
-		class AController * EventInstigator, AActor * DamageCauser) override;
+	class AController * EventInstigator, AActor * DamageCauser) override;
 
-	void Die(AActor* Causer);
+	//void Die(AActor* Causer);
+
+	void Die();
 
 	UFUNCTION(BlueprintCallable)
 	void DeathEnd();
