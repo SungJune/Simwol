@@ -7,6 +7,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Engine/World.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Weapon.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -18,7 +19,11 @@
 #include "FirstSaveGame.h"
 #include "ItemStorage.h"
 #include "TimerManager.h"
-
+#include "Engine/SkeletalMeshSocket.h"
+#include "Interactable.h"
+#include "InvetoryPickUp.h"
+#include "Engine/Engine.h"
+#include "FirstGamesGameModeBase.h"
 
 // Sets default values
 AMainCharacter::AMainCharacter()
@@ -26,40 +31,43 @@ AMainCharacter::AMainCharacter()
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	//Ä«¸Ş¶ó ºÕ ÀÌ¶ó´Â°ÍÀ» ¾Ë·ÁÁÜ (»ı¼º)
-	// Ãæµ¹¹ß»ı½Ã ÇÃ·¹ÀÌ¾î¸¦ ²ø¾î´ç±è
+	//ì¹´ë©”ë¼ ë¶ ì´ë¼ëŠ”ê²ƒì„ ì•Œë ¤ì¤Œ (ìƒì„±)
+	// ì¶©ëŒë°œìƒì‹œ í”Œë ˆì´ì–´ë¥¼ ëŒì–´ë‹¹ê¹€
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CamearaBoom"));
 	CameraBoom ->SetupAttachment (GetRootComponent());
-	// Ä«¸Ş¶óÀÇ ¼³Á¤µÈ°Å¸® ºÎÅÍ Ä«¸Ş¶ó µû¶ó¿È 
+	// ì¹´ë©”ë¼ì˜ ì„¤ì •ëœê±°ë¦¬ ë¶€í„° ì¹´ë©”ë¼ ë”°ë¼ì˜´ 
 	CameraBoom->TargetArmLength = 600.f;
-	// ÄÁÆ®·Ñ·¯ ±âÁØÀ¸·Î È¸Àü
+	// ì»¨íŠ¸ë¡¤ëŸ¬ ê¸°ì¤€ìœ¼ë¡œ íšŒì „
 	CameraBoom->bUsePawnControlRotation = true;
 
-	// Ä¸½¶ ÄÄÆ÷³ÍÆ® »çÀÌÁî Á¶Á¤
+	// ìº¡ìŠ ì»´í¬ë„ŒíŠ¸ ì‚¬ì´ì¦ˆ ì¡°ì •
 	GetCapsuleComponent()->SetCapsuleSize(48.f, 105.f);
 
-	// µû¶ó¿À´Â Ä«¸Ş¶ó »ı¼º
+	// ë”°ë¼ì˜¤ëŠ” ì¹´ë©”ë¼ ìƒì„±
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCameara"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 
-	// Ä«¸Ş¶ó ¿Í Ä«¸Ş¶óÀÇ ÄÁÆ®·Ñ·¯¹æÇâÀ¸·Î ÀÏÄ¡ÇÏµµ·Ï Á¶Á¤ À» ÇÑ´Ù  
+	// ì¹´ë©”ë¼ ì™€ ì¹´ë©”ë¼ì˜ ì»¨íŠ¸ë¡¤ëŸ¬ë°©í–¥ìœ¼ë¡œ ì¼ì¹˜í•˜ë„ë¡ ì¡°ì • ì„ í•œë‹¤  
 	FollowCamera->bUsePawnControlRotation = false;
 
-	// ÀÔ·Â È¸ÀüÀ² ¼³Á¤
+	// ì…ë ¥ íšŒì „ìœ¨ ì„¤ì •
 	BaseTurnRate = 65.f;
 	BaseLookupRate = 65.f;
 
-	// ÄÁÆ®·Ñ·¯ È¸Àü½Ã È¸Àü ¾ÈÇÔ (Ä¸½¶ ÄÁÆ®·Ñ·¯)
-	// Ä«¸Ş¶ó¿¡¸¸ ¿µÇâÀ» ¹ÌÄ¨´Ï´Ù
+	// ì»¨íŠ¸ë¡¤ëŸ¬ íšŒì „ì‹œ íšŒì „ ì•ˆí•¨ (ìº¡ìŠ ì»¨íŠ¸ë¡¤ëŸ¬)
+	// ì¹´ë©”ë¼ì—ë§Œ ì˜í–¥ì„ ë¯¸ì¹©ë‹ˆë‹¤
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationRoll = false;
 
-	// Ä³¸¯ÅÍ ÀÌµ¿ ±¸¼º
-	GetCharacterMovement()->bOrientRotationToMovement = true; // ¹®ÀÚ°¡ ÀÔ·Â ¹æÇâÀ¸·Î ÀÌµ¿
-	GetCharacterMovement()->RotationRate = FRotator(0.0f, 540.f, 0.0f); // È¸Àü ¼Óµµ
+	// ìºë¦­í„° ì´ë™ êµ¬ì„±
+	GetCharacterMovement()->bOrientRotationToMovement = true; // ë¬¸ìê°€ ì…ë ¥ ë°©í–¥ìœ¼ë¡œ ì´ë™
+	GetCharacterMovement()->RotationRate = FRotator(0.0f, 540.f, 0.0f); // íšŒì „ ì†ë„
 	GetCharacterMovement()->JumpZVelocity = 650.f;
 	GetCharacterMovement()->AirControl = 0.2f;
+
+	//DestinationMarker = CreateDefaultSubobject<UStaticMeshComponent>("DestinationMarker");
+	//DestinationMarker -> SetupAttachment(RootComponent);											
 
 	MaxHealth = 100.f;
 	Health = 65.f;
@@ -95,7 +103,18 @@ AMainCharacter::AMainCharacter()
 	MaxTime = 3.f;
 
 	bTeleport = false;
+
+	bSkillDown = false;
+
+	SkillDamage = 50.f;
+
+	//ìŠ¤í‚¬ ì‹œì „ì‹œê°„ ( ì‚¬ìš© )  ì‹œê°„ 
+	ablilty1Duration = 3.f;
+
+	//ìŠ¤í‚¬ ì¿¨ íƒ€ì„ ì‹œê°„ 
+	ablilty1ColldownTime = 5.f;
 	
+	Rech = 250.f;
 	
 }
 
@@ -110,7 +129,7 @@ void AMainCharacter::BeginPlay()
 
 	if (Map != "SunTemple")
 	{
-		// Àå¼ÒÀÌµ¿ÈÄ ¿ÀºêÁ§Æ® ºÒ·¯¿È(?)
+		// ì¥ì†Œì´ë™í›„ ì˜¤ë¸Œì íŠ¸ ë¶ˆëŸ¬ì˜´(?)
 		LoadGameNoSwitch();
 
 		if (MainPlayerController)
@@ -118,7 +137,8 @@ void AMainCharacter::BeginPlay()
 			MainPlayerController->GameModeOnly();
 		}
 	}
-
+	Inventory.SetNum(4);
+	CurrentInteractable = nullptr;
 	
 }
 
@@ -126,25 +146,24 @@ void AMainCharacter::BeginPlay()
 void AMainCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	if (MovementStatus == EMovementStatus::EMS_Dead) 
-		return;
+	
+	CheckForInteractables();
 
 	float DeltaStamina = StaminaDrainRate * DeltaTime;
 	
 	switch (StaminaStatus)
 	{
 	case EStaminaStatus::ESS_Normal:
-		// ½¬ÇÁÆ® Å°°¡ ´­·ÈÀ»¶§
+		// ì‰¬í”„íŠ¸ í‚¤ê°€ ëˆŒë ¸ì„ë•Œ
 		if (bShiftKeyDown)
 		{
-			// ½ºÅ×¹Ì³ª ÀÇ »óÅÂ°¡ ±âº»½ºÅÂ¹Ì³ª ¿¡¼­ ¼Ò¸ğµÈ ½ºÅÂ¹Ì³ª¸¦ •û°í ±× °ªÀÌ ÃÖ¼Ò½ºÅÂ¹Ì³ª º¸´Ù ÀÛ°Å³ª °°À»¶§ ½ÇÇà 
+			// ìŠ¤í…Œë¯¸ë‚˜ ì˜ ìƒíƒœê°€ ê¸°ë³¸ìŠ¤íƒœë¯¸ë‚˜ ì—ì„œ ì†Œëª¨ëœ ìŠ¤íƒœë¯¸ë‚˜ë¥¼ ëº´ê³  ê·¸ ê°’ì´ ìµœì†ŒìŠ¤íƒœë¯¸ë‚˜ ë³´ë‹¤ ì‘ê±°ë‚˜ ê°™ì„ë•Œ ì‹¤í–‰ 
 			if (Stamina - DeltaStamina <= MinSprintStamina)
 			{
-				// ÇöÀçÀÇ ½ºÅ×¹Ì³ª »óÅÂ¸¦ °¨¼Ò 
+				// í˜„ì¬ì˜ ìŠ¤í…Œë¯¸ë‚˜ ìƒíƒœë¥¼ ê°ì†Œ 
 				SetStaminaStatus(EStaminaStatus::ESS_BelowMinimum);
 
-				// ½ºÅ×¹Ì³ª º¯°æÀ» ¹İ¿µ
+				// ìŠ¤í…Œë¯¸ë‚˜ ë³€ê²½ì„ ë°˜ì˜
 				Stamina -= DeltaStamina;
 			}
 			else 
@@ -153,7 +172,7 @@ void AMainCharacter::Tick(float DeltaTime)
 			}
 			if (bMovingForward || bMovingRight)
 			{
-				// ÇöÀç »óÅÂ¸¦ Sprinting À¸·Î  
+				// í˜„ì¬ ìƒíƒœë¥¼ Sprinting ìœ¼ë¡œ  
 				SetMovementStatus(EMovementStatus::EMS_Sprinting);
 			}
 			else
@@ -163,18 +182,18 @@ void AMainCharacter::Tick(float DeltaTime)
 		}
 		else //Shift up
 		{
-			// Sprinting À» ¾ÈÇÏ°íÀÖÀ»¶§ ÇöÀç ½ºÅÂ¹Ì³ª ¿¡¼­ ¼Ò¸ğµÈ ½ºÅÂ¹Ì³ª¸¦ ´õÇÏ°í ±×°ªÀÌ ÃÖ°í ½ºÅÂ¹Ì³ª º¸´Ù Å©°Å³ª °°À»¶§ ½ÇÇà
+			// Sprinting ì„ ì•ˆí•˜ê³ ìˆì„ë•Œ í˜„ì¬ ìŠ¤íƒœë¯¸ë‚˜ ì—ì„œ ì†Œëª¨ëœ ìŠ¤íƒœë¯¸ë‚˜ë¥¼ ë”í•˜ê³  ê·¸ê°’ì´ ìµœê³  ìŠ¤íƒœë¯¸ë‚˜ ë³´ë‹¤ í¬ê±°ë‚˜ ê°™ì„ë•Œ ì‹¤í–‰
 			if (Stamina + DeltaStamina >= MaxStamina)
 			{
-				// ÇöÀç ½ºÅÂ¹Ì³ª¸¦ ÃÖ´ë ½ºÅÂ¹Ì³ª·Î ¼³Á¤ 
+				// í˜„ì¬ ìŠ¤íƒœë¯¸ë‚˜ë¥¼ ìµœëŒ€ ìŠ¤íƒœë¯¸ë‚˜ë¡œ ì„¤ì • 
 				Stamina = MaxStamina;
 			}
 			else
 			{
-				// ÇöÀç½ºÅÂ¹Ì³ªÀÇ ¼Ò¸ğµÈ ½ºÅÂ¹Ì³ª È¸º¹
+				// í˜„ì¬ìŠ¤íƒœë¯¸ë‚˜ì˜ ì†Œëª¨ëœ ìŠ¤íƒœë¯¸ë‚˜ íšŒë³µ
 				Stamina += DeltaStamina;
 			}
-			// ÇöÀç »óÅÂ¸¦ Á¤»óÀ¸·Î 
+			// í˜„ì¬ ìƒíƒœë¥¼ ì •ìƒìœ¼ë¡œ 
 			SetMovementStatus(EMovementStatus::EMS_Normal);
 		}
 		break;
@@ -183,13 +202,13 @@ void AMainCharacter::Tick(float DeltaTime)
 
 		if (bShiftKeyDown)
 		{
-			// ½ºÅÂ¹Ì³ª ¿¡¼­ »« ½ºÅ×¹Ì³ª °ªÀÌ 0 º¸´Ù ÀÛ°Å³ª °°À»¶§ 
+			// ìŠ¤íƒœë¯¸ë‚˜ ì—ì„œ ëº€ ìŠ¤í…Œë¯¸ë‚˜ ê°’ì´ 0 ë³´ë‹¤ ì‘ê±°ë‚˜ ê°™ì„ë•Œ 
 			if (Stamina - DeltaStamina <= 0.f)
 			{
-				// ÇöÀç »óÅÂ¸¦ ½ºÅ×¹Ì³ª °¨¼Ò·Î ¼³Á¤
+				// í˜„ì¬ ìƒíƒœë¥¼ ìŠ¤í…Œë¯¸ë‚˜ ê°ì†Œë¡œ ì„¤ì •
 				SetStaminaStatus(EStaminaStatus::ESS_Exhausted);
 				Stamina = 0;
-				// ÇöÀç »óÅÂ¸¦ ³ë¸» ¸ğµå·Î º¯°æ
+				// í˜„ì¬ ìƒíƒœë¥¼ ë…¸ë§ ëª¨ë“œë¡œ ë³€ê²½
 				SetMovementStatus(EMovementStatus::EMS_Normal);
 			}
 			else
@@ -198,7 +217,7 @@ void AMainCharacter::Tick(float DeltaTime)
 
 				if (bMovingForward || bMovingRight)
 				{
-					// ÇöÀç »óÅÂ¸¦ Sprinting À¸·Î  
+					// í˜„ì¬ ìƒíƒœë¥¼ Sprinting ìœ¼ë¡œ  
 					SetMovementStatus(EMovementStatus::EMS_Sprinting);
 				}
 				else
@@ -248,11 +267,13 @@ void AMainCharacter::Tick(float DeltaTime)
 		SetMovementStatus(EMovementStatus::EMS_Normal);
 		break;
 	default:
-		break;
+		;
 	
 	}
 
-	if (bInterpToEnemy && CombatMontage)
+	if (MovementStatus == EMovementStatus::EMS_Dead) return;
+
+	if (bInterpToEnemy && CombatTarget)
 	{
 		FRotator LookAtYaw = GetLookAtRotationYaw(CombatTarget->GetActorLocation());
 		FRotator InterpRotation = FMath::RInterpTo(GetActorRotation(), LookAtYaw, DeltaTime, InterpSpeed);  
@@ -260,11 +281,11 @@ void AMainCharacter::Tick(float DeltaTime)
 		SetActorRotation(InterpRotation);
 	}
 
-	// ÀüÅõ ¸ñÇ¥À§Ä¡°¡ ÀüÅõ¸ñÇ¥¿Í °°´Ù°íÇÒ¼öÀÖµµ·Ï
-	// ÀüÅõ¸ñÇ¥À§Ä¡¸¦ ¾÷µ¥ÀÌÆ®
+	// ì „íˆ¬ ëª©í‘œìœ„ì¹˜ê°€ ì „íˆ¬ëª©í‘œì™€ ê°™ë‹¤ê³ í• ìˆ˜ìˆë„ë¡
+	// ì „íˆ¬ëª©í‘œìœ„ì¹˜ë¥¼ ì—…ë°ì´íŠ¸
 	if (CombatTarget)
 	{
-		// ÀüÅõ´ë»óÀÇ ¾×ÅÍ À§Ä¡ ¸¦ÀúÀå
+		// ì „íˆ¬ëŒ€ìƒì˜ ì•¡í„° ìœ„ì¹˜ ë¥¼ì €ì¥
 		CombatTargetLocation = CombatTarget->GetActorLocation();
 		if (MainPlayerController)
 		{
@@ -288,15 +309,18 @@ void AMainCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 	check(PlayerInputComponent);
 
-	// Ä³¸¯ÅÍ Á¡ÇÁ 
+	// ìºë¦­í„° ì í”„ 
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
-	//Å¸ÀÓ¿öÇÁ Å×½ºÆ®
-	PlayerInputComponent->BindAction("Teleport", IE_Pressed, this, &AMainCharacter::Teleport);
-	PlayerInputComponent->BindAction("Teleport", IE_Released, this, &AMainCharacter::TeleportEnd);
+	// ìŠ¤í‚¬ ì‚¬ìš©  
+	PlayerInputComponent->BindAction("Skill_Button", IE_Pressed, this, &AMainCharacter::SkillKey_Down);
+	PlayerInputComponent->BindAction("Skill_Button", IE_Released, this, &AMainCharacter::SkillKeyup); 
 
-	// Ä³¸¯ÅÍ  Shift ´Ş¸®±â 
+	// ë²”ìœ„ ìŠ¤í‚¬ 
+	PlayerInputComponent->BindAction("RangSkill", IE_Pressed, this, &AMainCharacter::RangeSkill);
+
+	// ìºë¦­í„°  Shift ë‹¬ë¦¬ê¸° 
 	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &AMainCharacter::ShiftKeyDown);
 	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &AMainCharacter::ShiftKeyUp);
 
@@ -304,23 +328,27 @@ void AMainCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	PlayerInputComponent->BindAction("ESC", IE_Pressed, this, &AMainCharacter::ESCDown);
 	PlayerInputComponent->BindAction("ESC", IE_Released, this, &AMainCharacter::ESCUp);
 
-	// ¾ÆÀÌÅÛ ¸¶¿ì½º Å¬¸¯ ½Àµæ(?)
+	// ì•„ì´í…œ ë§ˆìš°ìŠ¤ í´ë¦­ ìŠµë“(?)
 	PlayerInputComponent->BindAction("LMB", IE_Pressed, this, &AMainCharacter::LMBDown);
 	PlayerInputComponent->BindAction("LMB", IE_Released, this, &AMainCharacter::LMBUp);
 
-	// ÇÃ·¹ÀÌ¾î ÀÌµ¿
+	// í”Œë ˆì´ì–´ ì´ë™
 	PlayerInputComponent->BindAxis("MoveForward", this, &AMainCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &AMainCharacter::MoveRight);
 
-	// Ä³¸¯ÅÍ È¸Àü
+	// ìºë¦­í„° íšŒì „
 	PlayerInputComponent->BindAxis("Turn", this, &AMainCharacter::Turn);
 	PlayerInputComponent->BindAxis("LookUp", this, &AMainCharacter::LookUp);
 	PlayerInputComponent->BindAxis("TurnRate", this, &AMainCharacter::TurnAtRate);
 	PlayerInputComponent->BindAxis("LookUpRate", this, &AMainCharacter::LookUpAtRate);
+
+	// ì¸ë²¤í† ë¦¬ ë° ìƒí˜¸ì‘ìš© 
+	PlayerInputComponent->BindAction("Intaract",IE_Pressed, this, &AMainCharacter::Interact);
+	PlayerInputComponent->BindAction("Inventory", IE_Pressed, this, &AMainCharacter::ToggleInventory);
 	
 }
 
-//  PauseMenu ÇßÀ»¶§ ¿òÁ÷ÀÓ ¸ØÃã
+//  PauseMenu í–ˆì„ë•Œ ì›€ì§ì„ ë©ˆì¶¤
 bool AMainCharacter::CanMove(float Value)
 {
 	if (MainPlayerController)
@@ -348,7 +376,7 @@ void AMainCharacter::LookUp(float Value)
 	}
 }
 
-// À§ ¾Æ·¡ ¿òÁ÷ÀÓ
+// ìœ„ ì•„ë˜ ì›€ì§ì„
 void AMainCharacter:: MoveForward(float Value)
 {
 	bMovingForward = false;
@@ -356,7 +384,7 @@ void AMainCharacter:: MoveForward(float Value)
 	if (CanMove(Value))
 	{
 		//  find out which way is forward
-		// GetControlRotation() ´Â ÄÁÆ®·Ñ·¯°¡ ÇâÇÏ´Â ¹æÇâÀ» ¾Ë·ÁÁÖ´Â È¸ÀüÀÚ ¸¦ ¹İÈ¯ÇÏ´Â ÇÔ¼ö 
+		// GetControlRotation() ëŠ” ì»¨íŠ¸ë¡¤ëŸ¬ê°€ í–¥í•˜ëŠ” ë°©í–¥ì„ ì•Œë ¤ì£¼ëŠ” íšŒì „ì ë¥¼ ë°˜í™˜í•˜ëŠ” í•¨ìˆ˜ 
 		const FRotator Rotation = Controller->GetControlRotation();
 		const FRotator YawRotation(0.f, Rotation.Yaw, 0.f);
 
@@ -369,7 +397,7 @@ void AMainCharacter:: MoveForward(float Value)
 
 
 
-// ¿ŞÂÊ ¿À¸¥ÂÊ ¿òÁ÷ÀÓ
+// ì™¼ìª½ ì˜¤ë¥¸ìª½ ì›€ì§ì„
 void AMainCharacter:: MoveRight(float Value)
 {
 	bMovingRight = false;
@@ -377,7 +405,7 @@ void AMainCharacter:: MoveRight(float Value)
 	if (CanMove(Value))
 	{
 		//  find out which way is forward
-		// GetControlRotation() ´Â ÄÁÆ®·Ñ·¯°¡ ÇâÇÏ´Â ¹æÇâÀ» ¾Ë·ÁÁÖ´Â È¸ÀüÀÚ ¸¦ ¹İÈ¯ÇÏ´Â ÇÔ¼ö 
+		// GetControlRotation() ëŠ” ì»¨íŠ¸ë¡¤ëŸ¬ê°€ í–¥í•˜ëŠ” ë°©í–¥ì„ ì•Œë ¤ì£¼ëŠ” íšŒì „ì ë¥¼ ë°˜í™˜í•˜ëŠ” í•¨ìˆ˜ 
 		const FRotator Rotation = Controller->GetControlRotation();
 		const FRotator YawRotation(0.f, Rotation.Yaw, 0.f);
 
@@ -406,7 +434,7 @@ void AMainCharacter::LMBDown()
 
 	//if (MainPlayerController) if (!MainPlayerController->bPauseMenuVisible) return;
 
-	// ¹«±â¸¦ ¼Õ¿¡ ºÎÂø
+	// ë¬´ê¸°ë¥¼ ì†ì— ë¶€ì°©
 	if (ActiveOverlappingItem)
 	{
 		AWeapon* Weapon = Cast<AWeapon>(ActiveOverlappingItem);
@@ -414,12 +442,14 @@ void AMainCharacter::LMBDown()
 		{
 			Weapon->Equip(this);
 			SetActiveOverlappingItem(nullptr);
+			UE_LOG(LogTemp, Warning, TEXT("Attacksa"));
 		}
 	}
 	else if (EquippedWeapon)
 	{
 		Attack();
 	}
+
 }
 void AMainCharacter::LMBUp()
 {
@@ -442,7 +472,7 @@ void AMainCharacter::ESCUp()
 
 void AMainCharacter::DecrementHealth(float Amount)
 {
-	// ÇÇÇØ¸¦ ÀÔ¾úÀ»¶§  Ã¼·Â - Æø¹ßÇÇÇØ °¡ 0º¸´Ù ÀÛ°Å³ª °°À»¶§ Á×À½ 
+	// í”¼í•´ë¥¼ ì…ì—ˆì„ë•Œ  ì²´ë ¥ - í­ë°œí”¼í•´ ê°€ 0ë³´ë‹¤ ì‘ê±°ë‚˜ ê°™ì„ë•Œ ì£½ìŒ 
 	if (Health - Amount <=0.f)
 	{
 		Health -= Amount;
@@ -459,7 +489,7 @@ void AMainCharacter::IncrementCoins(int32 Amount)
 	coins += Amount;
 }
 
-// Æ÷¼Ç È¿°ú
+// í¬ì…˜ íš¨ê³¼
 void AMainCharacter::IncrementHealth(float Amount)
 {
 	if (Health + Amount >= MaxHealth)
@@ -519,7 +549,7 @@ void AMainCharacter::ShiftKeyDown()
 
 void AMainCharacter::ShiftKeyUp()
 {
-	// Åä±Û 
+	// í† ê¸€ 
 	bShiftKeyDown = false;
 }
 
@@ -575,9 +605,59 @@ void AMainCharacter::AttackEnd()
 	}
 }
 
+void AMainCharacter::SkillKey_Down()
+{
+	bHaseSkillHit = true;
+	UAnimInstance* AnimInstances = GetMesh()->GetAnimInstance();
+	AWeapon* Weapon = Cast<AWeapon>(ActiveOverlappingItem);
+	const USkeletalMeshSocket* SkillSocket = GetMesh()->GetSocketByName("Main_L_Trail_01"); //í˜„ì¬ ìŠ¤í‚¬ ì‚¬ìš©ì‹œ ë°œë™ë  íŒŒí‹°í´ ìœ„ì¹˜ 
+	if (!bSkillDown && EquippedWeapon)
+	{
+		if (AnimInstances && SkillMontage)
+		{
+			AnimInstances->Montage_Play(SkillMontage, 1.5f);	
+			AnimInstances->Montage_JumpToSection(FName("Skill_Start"), SkillMontage);
+			
+			//í•´ë‹¹ íŒŒí‹°í´ ì†Œì¼“ ì¼ë•Œ íŒŒí‹°í´ ë°œìƒ
+			if (SkillSocket)
+			{
+				FVector SkillSocketLocation = SkillSocket->GetSocketLocation(GetMesh());
+				//SkillModParticles ì€ ìŠ¤í‚¬ ì‚¬ìš©ì‹œ ë°œìƒë  íŒŒí‹°í´ ( í”¼ê²© x ) ìì²´ì ì¸ íŒŒí‹°í´
+				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), SkillModParticles, SkillSocketLocation, FRotator(0.f), false); 
+			}
+			// ìŠ¤í‚¬ ì‚¬ìš© ì‹œì „ ì‹œê°„ 
+			//GetWorld()->GetTimerManager().SetTimer(ablilty1TimerHandle, this, &AMainCharacter::SkillKey_Down, ablilty1Duration, false);
+			AWeapon* Weapon = Cast<AWeapon>(ActiveOverlappingItem);
+			if (!bAttacking)
+			{
+				if (Weapon)
+				{
+					Weapon->Equip(this);
+					SetActiveOverlappingItem(nullptr);
+					UE_LOG(LogTemp, Warning, TEXT("Attacksala"));
+				}
+			}
+		}
+		/*
+		if (ablilty1Duration <= 3.f)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("asss"));
+			AnimInstances->Montage_Play(SkillMontage, 1.3f);
+			AnimInstances->Montage_JumpToSection(FName("Skill_Attack"), SkillMontage);
+			if (SkillSocket)
+			{
+				FVector SkillAttackLocation = SkillSocket->GetSocketLocation(GetMesh());
+				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), SkillAttackModParticles, SkillAttackLocation, FRotator(0.f), false);
+			}
+		}
+		*/
+
+	}
+}
+
 void AMainCharacter::PlaySwingSound()
 {
-	// ¹«±â°¡ À¯È¿ÇÒ‹š
+	// ë¬´ê¸°ê°€ ìœ íš¨í• ë–„
 	if (EquippedWeapon->SwingSound)
 	{
 		UGameplayStatics::PlaySound2D(this, EquippedWeapon->SwingSound);
@@ -654,7 +734,125 @@ void AMainCharacter::UpdateCombatTarget()
 		bHasCombatTarget = true;
 	}
 }
-// È­¸é ÀüÈ¯
+
+// ìŠ¤í‚¬ ì„ ì‚¬ìš©í–ˆì„ë•Œ ì‹œê°„ì´ ì¿¨ íƒ€ì„ ì‚¬ìš©
+void AMainCharacter::ResetAblilty1()
+{
+	hasUsedAblilty1 = true;
+	GetWorld()->GetTimerManager().SetTimer(ablilty1TimerHandle, this, &AMainCharacter::Ablilty1CooldownComplete, ablilty1ColldownTime, false);
+}
+
+bool AMainCharacter::AddItemToInventory(AInvetoryPickUp * Item)	  
+{
+	if (Item != NULL)
+	{
+		// ì•„ì´í…œ ì¸ë²¤í† ë¦¬ ì˜ ì²«ë²ˆì§¸ ìŠ¬ë¡¯ 
+		const int32 AvailableSloat = Inventory.Find(nullptr);
+
+		if (AvailableSloat != INDEX_NONE)
+		{
+			Inventory[AvailableSloat] = Item;
+			return true;
+		}
+		else
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("ë”ì´ìƒ ìˆ˜ì§‘í• ìˆ˜ì—†ìŠµë‹ˆë‹¤."));
+			return false;
+		}
+	}
+	else return false;
+}
+
+UTexture2D* AMainCharacter::GetThumbnailAtInventoryslot(int32 slot)
+{
+	if (Inventory[slot] != NULL)
+	{
+		return Inventory[slot]->PickupThumbnail;
+	}
+	else return nullptr;
+}
+
+FString AMainCharacter::GiveItemNameAtInventorySlot(int32 slot)
+{
+	if (Inventory[slot] != NULL)
+	{
+		return Inventory[slot]->ItemName;
+	}
+	return FString("None");
+}
+
+void AMainCharacter::UseItemAtInventorySlot(int32 slot)
+{
+	if (Inventory[slot] != NULL)
+	{
+		Inventory[slot]->Use_Implementation();
+		Inventory[slot] = NULL; // ì‚¬ìš©ëœ ì•„ì´í…œ ì¸ë²¤í† ë¦¬ì—ì„œ ì‚­ì œ 
+	}
+}
+
+void AMainCharacter::ToggleInventory()
+{
+	// ì¸ë²¤í† ë¦¬ë¥¼ ì—´ìŒ 
+	AFirstGamesGameModeBase* GameMode = Cast<AFirstGamesGameModeBase>(GetWorld()->GetAuthGameMode());
+
+	if (GameMode->GetHUDState() == GameMode->HS_Ingame)
+	{
+		GameMode->ChangeHUDState(GameMode->HS_Inventory);
+	}
+	else
+	{
+		GameMode->ChangeHUDState(GameMode->HS_Ingame);
+	}
+	
+}
+
+void AMainCharacter::Interact()
+{
+	// ìƒí˜¸ì‘ìš©ì„ í–ˆì„ë•Œ ë¬´ì¡°ê±´ ì‚¬ìš©ê°€ëŠ¥í•˜ë„ë¡í•¨ 
+	if (CurrentInteractable != nullptr)
+	{
+		CurrentInteractable->Interact_Implementation();
+	}
+}
+
+void AMainCharacter::CheckForInteractables()
+{
+	FVector StartTrace = FollowCamera->GetComponentLocation();
+	FVector EndTrace = (FollowCamera->GetForwardVector() * Rech) + StartTrace;
+
+	// ë ˆì´ìºìŠ¤íŠ¸ë¡œ ìˆì„ë•Œ í‘œì ì—ë§ëŠ”ì§€ 
+	FHitResult HitResult;
+
+	//ì•¡í„° ì¶©ëŒ
+	FCollisionQueryParams CQP;
+	CQP.AddIgnoredActor(this);
+
+	// ë¼ì¸ ì¶”ì 
+	GetWorld()->LineTraceSingleByChannel(HitResult, StartTrace, EndTrace, ECC_WorldDynamic, CQP);
+
+	AInteractable* PotentialInteractable = Cast<AInteractable>(HitResult.GetActor());
+	if (PotentialInteractable == NULL)
+	{
+		HelpText = FString("");
+		CurrentInteractable = nullptr;
+		return;
+	}
+	else
+	{
+		CurrentInteractable = PotentialInteractable;
+		HelpText = PotentialInteractable->InteractableHelpText;
+	}
+}
+
+//ìŠ¤í‚¬ ì¿¨íƒ€ì„ì´ ë‹¤ë˜ì—ˆì„ë•Œ ì¬ì‚¬ìš© ëŒ€ê¸°ë¡œ ì „í™˜
+void AMainCharacter::Ablilty1CooldownComplete()
+{
+	hasUsedAblilty1 = false;
+}
+
+
+
+// í™”ë©´ ì „í™˜
 void AMainCharacter::SwitchLevel(FName LevelName)
 {
 	UWorld* World = GetWorld();
@@ -662,8 +860,8 @@ void AMainCharacter::SwitchLevel(FName LevelName)
 	{
 		FString CurrentLevel = World->GetMapName();
 
-		// FName À» FString À¸·Î ÃÊ±âÈ­
-		// FNameÀ» ¹®ÀÚ¿­ ¸®ÅÍ·²·Î ÃÊ±âÈ­
+		// FName ì„ FString ìœ¼ë¡œ ì´ˆê¸°í™”
+		// FNameì„ ë¬¸ìì—´ ë¦¬í„°ëŸ´ë¡œ ì´ˆê¸°í™”
 		FName CurreuntLevelName(*CurrentLevel);
 		if (CurreuntLevelName != LevelName)
 		{
@@ -673,7 +871,9 @@ void AMainCharacter::SwitchLevel(FName LevelName)
 	}
 }
 
-// °ÔÀÓ ÀúÀå 
+
+
+// ê²Œì„ ì €ì¥ 
 void AMainCharacter::SaveGame()
 {
 	UFirstSaveGame* SaveGameInstance = Cast<UFirstSaveGame>(UGameplayStatics::CreateSaveGameObject(UFirstSaveGame::StaticClass()));
@@ -699,7 +899,7 @@ void AMainCharacter::SaveGame()
 	UGameplayStatics::SaveGameToSlot(SaveGameInstance, SaveGameInstance->PlayerName, SaveGameInstance->UserIndex); 
 }
 
-//°ÔÀÓ ºÒ·¯¿À±â
+//ê²Œì„ ë¶ˆëŸ¬ì˜¤ê¸°
 void AMainCharacter::LoadGame(bool SetPosition)
 {
 	UFirstSaveGame* LoadeGameInstance = Cast<UFirstSaveGame>(UGameplayStatics::CreateSaveGameObject(UFirstSaveGame::StaticClass()));
@@ -770,58 +970,10 @@ void AMainCharacter::LoadGameNoSwitch()
 	GetMesh()->bNoSkeletonUpdate = false;
 }
 
-void AMainCharacter::Teleport()
+void AMainCharacter::RangeSkill()
 {
-	/*
-	if (bTeleport)
-	{
-		
-		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-		if (AnimInstance && HitParticles)
-		{
-			FVector PlayerPosition = GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation();
-			GetWorldTimerManager().SetTimer(TeleportTimer, this, &AMainCharacter::Teleport, 1.f);
-
-			switch (ForwardVector)
-			{
-			case 'W':
-				// ÇöÀç ÇÃ·¹ÀÌ¾î À§Ä¡¸¦ ¹ŞÀ½ 
-				AnimInstance->Montage_Play(CombatMontage, 2.2f);
-				AnimInstance->Montage_JumpToSection(FName("Attack_1"), CombatMontage);
-				//UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), HitParticles, SocketLocation, FRotator(0.f), false);
-				break;
-
-			case 'S':
-				// ÇöÀç ÇÃ·¹ÀÌ¾î À§Ä¡¸¦ ¹ŞÀ½ 
-				AnimInstance->Montage_Play(CombatMontage, 1.2f);
-				AnimInstance->Montage_JumpToSection(FName("Attack_2"), CombatMontage);
-				break;
-
-			case 'A':
-				// ÇöÀç ÇÃ·¹ÀÌ¾î À§Ä¡¸¦ ¹ŞÀ½ 
-				AnimInstance->Montage_Play(CombatMontage, 1.2f);
-				AnimInstance->Montage_JumpToSection(FName("Attack_1"), CombatMontage);
-				break;
-
-			case 'D':// ÇöÀç ÇÃ·¹ÀÌ¾î À§Ä¡¸¦ ¹ŞÀ½ 
-				AnimInstance->Montage_Play(CombatMontage, 1.2f);
-				AnimInstance->Montage_JumpToSection(FName("Attack_2"), CombatMontage);
-				break;
-
-			default:
-				break;
-			}
-		}
-		
-		
-	}
-	*/
-}
-
-
-void AMainCharacter::TeleportEnd()
-{
-
+	//DestinationMarker->SetVisibility(false);
+	//DestinationMarker->Activate(false);
 }
 
 
@@ -834,15 +986,3 @@ void AMainCharacter::TeleportEnd()
 
 
 
-
-/*
-void AMainCharacter::ShowPickupLocation()
-{
-
-	for (auto Location : PickupLocations)
-	{
-		UKismetSystemLibrary::DrawDebugSphere(this, PickupLocations[i], 25.f, 8, FLinearColor::Green, 10.f, 0.5f);
-	}
-	
-}
-*/
