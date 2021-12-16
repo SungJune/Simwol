@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "InvetoryPickUp.h"
+#include "Interactable.h"
 #include "MainCharacter.generated.h"
 
 UENUM(BlueprintType)
@@ -21,8 +23,8 @@ enum class EStaminaStatus : uint8
 {
 	ESS_Normal UMETA(DisplayName = "Normal"),
 	ESS_BelowMinimum UMETA(DisplayName = "BelowMinimum"),
-	ESS_Exhausted UMETA(DisplayName = "Exhausted"), //ESS_Exhausted ½ºÅ×¹Ì³ªÀÇ ÃÖ¼Ò°ª 
-	ESS_ExhaustedRecovering UMETA(DisplayName = "ExhaustedRecovering"), //ESS_ExhaustedRecovering ½ºÅ×¹Ì³ª È¸º¹
+	ESS_Exhausted UMETA(DisplayName = "Exhausted"), //ESS_Exhausted ìŠ¤í…Œë¯¸ë‚˜ì˜ ìµœì†Œê°’ 
+	ESS_ExhaustedRecovering UMETA(DisplayName = "ExhaustedRecovering"), //ESS_ExhaustedRecovering ìŠ¤í…Œë¯¸ë‚˜ íšŒë³µ
 
 	ESS_MAX UMETA(DisplayName = "DefaultMAX")
 
@@ -57,13 +59,22 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Combat")
 	class USoundCue* HitSound;
 
+	//UPROPERTY(EditAnywhere)
+	//class UStaticMeshComponent* DestinationMarker; //ë²”ìœ„
+
+	// í…”ë ˆí¬íŠ¸ ê±°ë¦¬(ë²”ìœ„)
+	//UPROPERTY(EditAnywhere)
+	//float TeleportProjectileSpeed = 500;
+
+	void RangeSkill();  //ë²”ìœ„ ìŠ¤í‚¬ 
+
 	//TArray<FVector> PickupLocations;
 
 
 	//UFUNCTION(BlueprintCallable)
 	//void ShowPickupLocation();
 
-	//  ¿­°ÜÇüÀ» °¡Áø ÇÔ¼ö 
+	//  ì—´ê²¨í˜•ì„ ê°€ì§„ í•¨ìˆ˜ 
 	UPROPERTY(VisibleAnywhere,BlueprintReadwrite,Category = "Enums")
 	EMovementStatus MovementStatus;
 
@@ -91,7 +102,7 @@ public:
 
 	FRotator GetLookAtRotationYaw(FVector Target);
 
-	// ¾È¿òÁ÷ÀÌ´Â »óÅÂÀÏ¶§
+	// ì•ˆì›€ì§ì´ëŠ” ìƒíƒœì¼ë•Œ
 	//Set Movement Status and running speed
 	void SetMovementStatus(EMovementStatus Status);
 
@@ -109,17 +120,17 @@ public:
 	//Released to stop sprinting
 	void ShiftKeyUp();
 
-	//¾îµğ¼­µç º¼¼öÀÖ°Ô Camera ¼³Á¤ 
-	// ºí·çÇÁ¸°Æ®¿¡¼­ ÀÌ¸¦ ¼³Á¤ÇÏ¿© ºí·çÇÁ¸°Æ® ÀĞ±â Àü¿ë¹× Ä«Å×°í¸®·Î ¼³Á¤ÇÏÁö¾ÊÀ½
+	//ì–´ë””ì„œë“  ë³¼ìˆ˜ìˆê²Œ Camera ì„¤ì • 
+	// ë¸”ë£¨í”„ë¦°íŠ¸ì—ì„œ ì´ë¥¼ ì„¤ì •í•˜ì—¬ ë¸”ë£¨í”„ë¦°íŠ¸ ì½ê¸° ì „ìš©ë° ì¹´í…Œê³ ë¦¬ë¡œ ì„¤ì •í•˜ì§€ì•ŠìŒ
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess="true"))
 	class USpringArmComponent* CameraBoom;
 
-	// µû¶ó¿À´Â Ä«¸Ş¶ó
+	// ë”°ë¼ì˜¤ëŠ” ì¹´ë©”ë¼
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* FollowCamera;
 
-	// ¼±È¸À²
-	// Ä«¸Ş¶óÀÇ È¸Àü ±â´ÉÀ» È®ÀåÇÏ±âÀ§ÇÑ ±âº» È¸Àü ¼Óµµ
+	// ì„ íšŒìœ¨
+	// ì¹´ë©”ë¼ì˜ íšŒì „ ê¸°ëŠ¥ì„ í™•ì¥í•˜ê¸°ìœ„í•œ ê¸°ë³¸ íšŒì „ ì†ë„
 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category=Camera)
 	float BaseTurnRate;
 
@@ -146,7 +157,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadwrite, Category = "Player Stats")
 	int32 coins;
 
-	// ÇÇÇØ¸¦ ÀÔ¾úÀ»¶§ °¨¼ÒµÇ´Â Ã¼·Â 
+	// í”¼í•´ë¥¼ ì…ì—ˆì„ë•Œ ê°ì†Œë˜ëŠ” ì²´ë ¥ 
 	void DecrementHealth(float Amount);
 	
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const & DamageEvent,
@@ -173,16 +184,16 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	
-	// À§ ¾Æ·¡ ¿òÁ÷ÀÓ
+	// ìœ„ ì•„ë˜ ì›€ì§ì„
 	void MoveForward(float Value);
 
-	// ¿ŞÂÊ ¿À¸¥ÂÊ ¿òÁ÷ÀÓ
+	// ì™¼ìª½ ì˜¤ë¥¸ìª½ ì›€ì§ì„
 	void MoveRight(float Value);
 
-	// È¸Àü
+	// íšŒì „
 	void Turn(float Value);
 
-	// ¹æÇâ
+	// ë°©í–¥
 	void LookUp(float Value);
 
 
@@ -191,11 +202,11 @@ public:
 
 	bool CanMove(float Value);
 
-	// ÁÖ¾îÁø ¼Óµµ·Î È¸ÀüÇÏ±â À§ÇØ ÀÔ·ÂÀ» ÅëÇØ È£Ãâ
+	// ì£¼ì–´ì§„ ì†ë„ë¡œ íšŒì „í•˜ê¸° ìœ„í•´ ì…ë ¥ì„ í†µí•´ í˜¸ì¶œ
 	// @param Rate This is a  normalized rate, i.e ,1.0 means 100% of desired turn rate
 	void TurnAtRate(float Rate);
 
-	// ÁÖ¾îÁø ¼Óµµ¿¡¼­ À§ ¾Æ·¡ ¹æÇâÅ°¸¦ Ã£À½(?)
+	// ì£¼ì–´ì§„ ì†ë„ì—ì„œ ìœ„ ì•„ë˜ ë°©í–¥í‚¤ë¥¼ ì°¾ìŒ(?)
 	// Called via input to look up/down at a given rate
 	// @param Rate This is a  normalized rate, i.e ,1.0 means 100% of desired look up/down rate
 	void LookUpAtRate(float Rate);
@@ -207,12 +218,6 @@ public:
 	bool bESCDown;
 	void ESCDown();
 	void ESCUp();
-
-	void Teleport();
-	void TeleportEnd();
-
-
-
 
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
@@ -242,9 +247,14 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anims")
 	class UAnimMontage* TestMontage;
 
-	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Combat")
-	class UParticleSystem* TestParticles;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anims")
+	class UAnimMontage* SkillMontage;
 
+	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Combat")
+	class UParticleSystem* SkillModParticles;
+
+	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Combat")
+	class UParticleSystem* SkillAttackModParticles;
 
 	UFUNCTION(BlueprintCallable)
 	void PlaySwingSound();
@@ -257,7 +267,7 @@ public:
 	UPROPERTY(EditAnywhere,BlueprintReadwrite , Category = "Combat")
 	TSubclassOf<AEnemy> EnemyFilter;
 
-	//È­¸é ÀüÈ¯ (·¹º§ÀüÈ¯)
+	//í™”ë©´ ì „í™˜ (ë ˆë²¨ì „í™˜)
 	void SwitchLevel(FName LevelName);
 
 	UFUNCTION(BlueprintCallable)
@@ -268,8 +278,40 @@ public:
 
 	void LoadGameNoSwitch();
 
-	// ÀûÀÇ °ø°İÁö¿¬ 
+	void SkillKey_Down();
+	//ìŠ¤í‚¬ í‚¤ ê°€ í´ë¦­ì´ì•ˆë˜ì—ˆì„ë–„ True ë¥¼í•´ì£¼ê¸°ë–„ë¬¸ì— ì²˜ìŒë¶€í„° False ë¡œ ì‘ì„±
+	FORCEINLINE void SkillKeyup() { bSkillDown = false; }
+
+	//ìŠ¤í‚¬ ì‚¬ìš©ì´ ë˜ì—ˆëŠ”ì§€ í™•ì¸ 
+	bool bSkillDown;
+
+	// ì ì˜ ê³µê²©ì§€ì—° 
 	FTimerHandle TeleportTimer;
+
+	//ìŠ¤í‚¬ ì¿¨íƒ€ì„ì´ ë‹¤ë˜ì—ˆì„ë•Œ ì¬ì‚¬ìš© ëŒ€ê¸°ë¡œ ì „í™˜
+	void Ablilty1CooldownComplete();
+
+	// ìŠ¤í‚¬ ì„ ì‚¬ìš©í–ˆì„ë•Œ ì‹œê°„ì´ ì¿¨ íƒ€ì„ ì‚¬ìš©
+	void ResetAblilty1();
+
+	// ìºë¦­í„°ê°€ ì²«ë²ˆì§¸ ê¸°ìˆ ì„ ì‚¬ìš©í–ˆëŠ”ì§€ í™•ì¸ 
+	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Abliltys")
+	bool hasUsedAblilty1;
+
+	//ìºë¦­í„°ê°€ ì²«ë²ˆì§¸ ê¸°ìˆ  ì‚¬ìš© ì‹œê°„ 
+	float ablilty1Duration;
+
+	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "AI")
+	float SkillDamage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
+	bool bHaseSkillHit;
+
+	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Abliltys")
+	float ablilty1ColldownTime;
+
+	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Abliltys")
+	FTimerHandle ablilty1TimerHandle;
 
 	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Combat")
 	float MinTime;
@@ -279,5 +321,43 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	bool bTeleport;
+	// ì„¤ëª…ì°½
+	UPROPERTY(EditAnywhere,BlueprintReadwrite,Category="HUD")
+	FString HelpText;
+
+	// ì•„ì´íƒ¬ ìŠµë“ì‹œ ì¸ë²¤í† ë¦¬ì— ë“¤ì–´ê°
+	UFUNCTION(BlueprintPure,Category = "Inventory Function")
+	bool AddItemToInventory(AInvetoryPickUp*Item);
+
+	//ì¸ë²¤í† ë¦¬ ìŠ¬ë¡¯
+	UFUNCTION(BlueprintPure, Category = "Inventory Function")
+	UTexture2D* GetThumbnailAtInventoryslot(int32 slot);
+
+	// ì¸ë²¤í† ë¦¬ì— ì¶œë ¥ë˜ëŠ” í…ìŠ¤íŠ¸ 
+	UFUNCTION(BlueprintPure, Category = "Inventory Function")
+	FString GiveItemNameAtInventorySlot(int32 slot);
+
+	// ì¸ë²¤í† ë¦¬ ì•„ì´í…œ ì‚¬ìš© ìŠ¬ë¡¯
+	UFUNCTION(BlueprintCallable, Category = "Inventory Function")
+	void UseItemAtInventorySlot(int32 slot);
+private:
+
+	// ì¸ë²¤í† ë¦¬
+	void ToggleInventory();
+
+	// ìƒí˜¸ì‘ìš©
+	void Interact();
+
+	void CheckForInteractables();
 	
+	// í”Œë ˆì´ì–´ ë²”ìœ„
+	float Rech;
+
+	// í”Œë ˆì´ì–´ê°€ ëª©í‘œë¬¼ì„ ë³´ê³ ìˆë‹¤ë©´ ìƒí˜¸ì‘ìš© ê°€ëŠ¥
+	AInteractable* CurrentInteractable;
+
+	// ì•„ì´í…œ ìŠµë“ ì‹œ ì‚¬ìš©í•˜ëŠ”ë°°ì—´
+	UPROPERTY(EditAnywhere)
+	TArray<AInvetoryPickUp*> Inventory;
+
 };
